@@ -17,11 +17,36 @@ Create a service principal with Contributor access to your resource group:
 az ad sp create-for-rbac `
   --name "github-actions-zavastorefrontTechWorkshop-L300-GitHub-Copilot-and-platform" `
   --role Contributor `
-  --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group-name} `
-  --sdk-auth
+  --scopes /subscriptions/{subscription-id}/resourceGroups/{resource-group-name}
 ```
 
-Copy the entire JSON output. You'll use this in the next step.
+**Important:** Do NOT use the `--sdk-auth` flag (it's deprecated and causes JSON format issues).
+
+The output will look like:
+
+```json
+{
+  "appId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "displayName": "github-actions-zavastorefrontTechWorkshop-L300-GitHub-Copilot-and-platform",
+  "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "tenant": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+```
+
+**IMPORTANT - Property Name Mapping:**
+
+- Azure outputs: `appId`, `password`, `tenant`
+- GitHub needs: `clientId`, `clientSecret`, `tenantId`
+
+**Save this output!** The password cannot be retrieved later.
+
+**If you lost the password**, reset it with:
+
+```powershell
+az ad sp credential reset --id <appId-from-above> --query "{appId:appId, password:password, tenant:tenant}" -o json
+```
+
+You'll need to construct the GitHub secret manually in the next step.
 
 ## Step 2: Configure GitHub Secrets
 
@@ -31,30 +56,55 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 
 Click **New repository secret** and add:
 
-| Name                | Value                             | Description                         |
-| ------------------- | --------------------------------- | ----------------------------------- |
-| `AZURE_CREDENTIALS` | `{...JSON output from Step 1...}` | Azure service principal credentials |
+| Name                | Value                                 | Description                         |
+| ------------------- | ------------------------------------- | ----------------------------------- |
+| `AZURE_CREDENTIALS` | Manually constructed JSON (see below) | Azure service principal credentials |
 
-The JSON should look like:
+**Manually construct the JSON** using the output from Step 1.
 
-```json
-{
-  "clientId": "<client-id>",
-  "clientSecret": "<client-secret>",
-  "subscriptionId": "<subscription-id>",
-  "tenantId": "<tenant-id>"
-}
+The GitHub secret must be valid JSON with these **exact** keys: `clientId`, `clientSecret`, `subscriptionId`, `tenantId`
+
+**Use this PowerShell script** to generate the correct JSON (replace with your actual values from Step 1):
+
+```powershell
+# Map Azure's property names to GitHub's required names:
+# appId → clientId
+# password → clientSecret
+# tenant → tenantId
+
+$appId = "YOUR-APP-ID-HERE"           # from "appId" in Step 1 output
+$password = "YOUR-PASSWORD-HERE"       # from "password" in Step 1 output
+$tenant = "YOUR-TENANT-ID-HERE"        # from "tenant" in Step 1 output
+$subscriptionId = "bf0ff2fe-5503-48b0-8b52-cd0e67aa8fd8"
+
+# Generate properly formatted JSON with correct property names for GitHub
+$creds = @{
+    clientId = $appId              # GitHub needs "clientId"
+    clientSecret = $password        # GitHub needs "clientSecret"
+    subscriptionId = $subscriptionId
+    tenantId = $tenant              # GitHub needs "tenantId"
+} | ConvertTo-Json -Compress
+
+# Display the JSON to copy
+Write-Output $creds
+
+# Verify it's valid
+$creds | ConvertFrom-Json | Format-List
 ```
+
+1. Copy the **compressed JSON output** (single line)
+2. Paste it directly into GitHub as the `AZURE_CREDENTIALS` secret value
+3. Verify all four keys are present: clientId, clientSecret, subscriptionId, tenantId
 
 ## Step 3: Configure GitHub Variables
 
 In the same location, click the **Variables** tab, then **New repository variable** for each:
 
-| Name                       | Value                                 | How to Find                                                 |
-| -------------------------- | ------------------------------------- | ----------------------------------------------------------- |
-| `AZURE_WEBAPP_NAME`        | Your App Service name                 | Run: `az webapp list -g {rg-name} --query "[].name" -o tsv` |
-| `AZURE_RESOURCE_GROUP`     | Your resource group name              | Example: `rg-dev` or `rg-markenv`                           |
-| `AZURE_CONTAINER_REGISTRY` | Your ACR name (without `.azurecr.io`) | Run: `az acr list -g {rg-name} --query "[].name" -o tsv`    |
+| Name                       | Value                                 | How to Find                                                       |
+| -------------------------- | ------------------------------------- | ----------------------------------------------------------------- |
+| `AZURE_CONTAINER_APP_NAME` | Your Container App name               | Run: `az containerapp list -g {rg-name} --query "[].name" -o tsv` |
+| `AZURE_RESOURCE_GROUP`     | Your resource group name              | Example: `rg-dev` or `rg-markenv`                                 |
+| `AZURE_CONTAINER_REGISTRY` | Your ACR name (without `.azurecr.io`) | Run: `az acr list -g {rg-name} --query "[].name" -o tsv`          |
 
 ### Quick Commands to Get Values
 
@@ -62,8 +112,8 @@ In the same location, click the **Variables** tab, then **New repository variabl
 # Set your resource group name
 $RG_NAME = "rg-markenv"  # Replace with your actual resource group name
 
-# Get App Service name
-az webapp list -g $RG_NAME --query "[].name" -o tsv
+# Get Container App name
+az containerapp list -g $RG_NAME --query "[].name" -o tsv
 
 # Get Container Registry name
 az acr list -g $RG_NAME --query "[].name" -o tsv
@@ -95,7 +145,7 @@ az role assignment create `
 After configuring secrets and variables:
 
 1. Go to **Actions** tab in your GitHub repository
-2. You should see the workflow "Build and Deploy to Azure App Service"
+2. You should see the workflow "Build and Deploy to Azure Container App"
 3. Click **Run workflow** to trigger a manual deployment
 4. Monitor the workflow execution
 
@@ -113,9 +163,9 @@ The workflow runs automatically on:
 - Verify the service principal has **AcrPush** role on the Container Registry
 - Check that `AZURE_CONTAINER_REGISTRY` variable is the registry name (not the full URL)
 
-### Error: "App Service not found"
+### Error: "Container App not found"
 
-- Verify `AZURE_WEBAPP_NAME` matches exactly (case-sensitive)
+- Verify `AZURE_CONTAINER_APP_NAME` matches exactly (case-sensitive)
 - Ensure `AZURE_RESOURCE_GROUP` is correct
 
 ### Error: Authentication failed
@@ -126,7 +176,7 @@ The workflow runs automatically on:
 
 ### Error: Image pull failed
 
-- The App Service uses managed identity to pull images (not the service principal)
+- The Container App uses managed identity to pull images (not the service principal)
 - Verify the managed identity has **AcrPull** role on ACR (already configured by Bicep)
 
 ## Security Notes

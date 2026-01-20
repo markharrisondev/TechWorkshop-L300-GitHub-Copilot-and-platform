@@ -1,4 +1,4 @@
-name: Build and Deploy to Azure App Service
+name: Build and Deploy to Azure Container App
 
 on:
     push:
@@ -9,7 +9,7 @@ on:
     workflow_dispatch:
 
 env:
-    AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
+    AZURE_CONTAINER_APP_NAME: ${{ vars.AZURE_CONTAINER_APP_NAME }}
     AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
     CONTAINER_REGISTRY: ${{ vars.AZURE_CONTAINER_REGISTRY }}
     IMAGE_NAME: zavastorefrontweb
@@ -39,12 +39,12 @@ jobs:
                   docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
                   docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
-            - name: Deploy to Azure App Service
-              uses: azure/webapps-deploy@v3
-              with:
-                  app-name: ${{ env.AZURE_WEBAPP_NAME }}
-                  resource-group-name: ${{ env.AZURE_RESOURCE_GROUP }}
-                  images: ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            - name: Deploy to Azure Container App
+              run: |
+                  az containerapp update \
+                    --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
+                    --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                    --image ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
             - name: Logout from Azure
               if: always()
