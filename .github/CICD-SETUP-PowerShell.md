@@ -50,11 +50,11 @@ The JSON should look like:
 
 In the same location, click the **Variables** tab, then **New repository variable** for each:
 
-| Name                       | Value                                 | How to Find                                                    |
-| -------------------------- | ------------------------------------- | -------------------------------------------------------------- |
-| `AZURE_WEBAPP_NAME`        | Your App Service name                 | Run: `az webapp list -g {rg-name} --query "[].name" -o tsv`   |
-| `AZURE_RESOURCE_GROUP`     | Your resource group name              | Example: `rg-dev` or `rg-markenv`                              |
-| `AZURE_CONTAINER_REGISTRY` | Your ACR name (without `.azurecr.io`) | Run: `az acr list -g {rg-name} --query "[].name" -o tsv`      |
+| Name                       | Value                                 | How to Find                                                 |
+| -------------------------- | ------------------------------------- | ----------------------------------------------------------- |
+| `AZURE_WEBAPP_NAME`        | Your App Service name                 | Run: `az webapp list -g {rg-name} --query "[].name" -o tsv` |
+| `AZURE_RESOURCE_GROUP`     | Your resource group name              | Example: `rg-dev` or `rg-markenv`                           |
+| `AZURE_CONTAINER_REGISTRY` | Your ACR name (without `.azurecr.io`) | Run: `az acr list -g {rg-name} --query "[].name" -o tsv`    |
 
 ### Quick Commands to Get Values
 
