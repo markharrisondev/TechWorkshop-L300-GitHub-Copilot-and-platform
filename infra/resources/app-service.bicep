@@ -28,10 +28,10 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   location: location
   tags: tags
   sku: {
-    name: 'B2'
-    tier: 'Basic'
-    size: 'B2'
-    family: 'B'
+    name: 'F1'
+    tier: 'Free'
+    size: 'F1'
+    family: 'F'
     capacity: 1
   }
   kind: 'linux'

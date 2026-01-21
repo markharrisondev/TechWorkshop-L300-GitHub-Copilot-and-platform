@@ -48,6 +48,115 @@ infra/
 
 ## Deployment
 
+### Deploy Phi-4 Model in Azure AI Foundry
+
+The infrastructure automatically deploys the Phi-4 model to Azure AI Foundry (Cognitive Services). Here's what happens:
+
+#### Automated Deployment (via Bicep)
+
+When you deploy using `azd up`, the infrastructure will:
+
+1. **Create Azure AI Services account** (formerly Cognitive Services)
+2. **Deploy GPT-4 model** with 10 capacity units
+3. **Deploy Phi-4 model** (version 2024-12-12) with 1 capacity unit
+4. **Configure managed identity access** with Cognitive Services User role
+5. **Output the endpoint URL** as `AZURE_FOUNDRY_ENDPOINT`
+
+The Phi-4 deployment is defined in `infra/resources/foundry.bicep` with these specifications:
+
+- **Model Name**: Phi-4
+- **Deployment Name**: Phi-4
+- **Version**: 2024-12-12
+- **Capacity**: 1 unit (Standard SKU)
+- **Region**: westus3 (same as other resources)
+
+#### Manual Deployment via Azure Portal
+
+If you prefer to deploy Phi-4 manually through the Azure Portal:
+
+1. **Navigate to Azure AI Foundry**:
+   - Go to [Azure Portal](https://portal.azure.com)
+   - Search for "Azure AI services" or "Cognitive Services"
+
+2. **Create or Select AI Services Resource**:
+   - Click **Create** → **Azure AI services multi-service account**
+   - Fill in:
+     - Subscription: Your subscription
+     - Resource Group: Your resource group
+     - Region: **West US 3** (recommended for Phi-4 availability)
+     - Name: Unique name for your service
+     - Pricing Tier: **S0 (Standard)**
+   - Click **Review + Create** → **Create**
+
+3. **Deploy Phi-4 Model**:
+   - Open your AI Services resource
+   - In the left menu, click **Model deployments** (under Resource Management)
+   - Click **+ Create new deployment**
+   - Fill in:
+     - Select model: **Phi-4**
+     - Model version: **2024-12-12** (or latest available)
+     - Deployment name: **Phi-4**
+     - Deployment type: **Standard**
+     - Tokens per Minute Rate Limit: 1K-10K (based on your needs)
+   - Click **Deploy**
+
+4. **Get the Endpoint URL**:
+   - Go to **Keys and Endpoint** in the left menu
+   - Copy the **Endpoint** URL (e.g., `https://your-service.cognitiveservices.azure.com/`)
+
+5. **Configure Managed Identity Access**:
+   - Go to **Access control (IAM)**
+   - Click **+ Add** → **Add role assignment**
+   - Select **Cognitive Services User** role
+   - Click **Next**
+   - Select **Managed identity**
+   - Click **+ Select members**
+   - Find your App Service's managed identity
+   - Click **Review + assign**
+
+#### Configure the Endpoint in Your Application
+
+After deployment (automated or manual), configure the endpoint:
+
+1. **For Azure deployment** - Set as App Service environment variable:
+
+   ```bash
+   az webapp config appsettings set \
+     --name <WEB_APP_NAME> \
+     --resource-group <RESOURCE_GROUP_NAME> \
+     --settings AZURE_FOUNDRY_ENDPOINT="https://your-service.cognitiveservices.azure.com/"
+   ```
+
+2. **For local development** - Add to `src/appsettings.json`:
+
+   ```json
+   {
+     "AZURE_FOUNDRY_ENDPOINT": "https://your-service.cognitiveservices.azure.com/"
+   }
+   ```
+
+   Or set as environment variable:
+
+   ```powershell
+   $env:AZURE_FOUNDRY_ENDPOINT="https://your-service.cognitiveservices.azure.com/"
+   dotnet run --project src
+   ```
+
+#### Verify Phi-4 Deployment
+
+```bash
+# List all model deployments
+az cognitiveservices account deployment list \
+  --name <AI_SERVICE_NAME> \
+  --resource-group <RESOURCE_GROUP_NAME>
+
+# Get specific deployment details
+az cognitiveservices account deployment show \
+  --name <AI_SERVICE_NAME> \
+  --resource-group <RESOURCE_GROUP_NAME> \
+  --deployment-name Phi-4
+```
+
 ### Using Azure Developer CLI (Recommended)
 
 1. **Initialize environment** (if not already done):

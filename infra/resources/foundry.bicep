@@ -29,34 +29,13 @@ resource cognitiveServices 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
       defaultAction: 'Allow'
     }
     disableLocalAuth: false
-    apiProperties: {
-      statisticsEnabled: false
-    }
   }
 }
 
-// GPT-4 Deployment
-resource gpt4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
+// Phi-4 Model Deployment
+resource phi4Deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: cognitiveServices
-  name: 'gpt-4'
-  sku: {
-    name: 'Standard'
-    capacity: 10
-  }
-  properties: {
-    model: {
-      format: 'OpenAI'
-      name: 'gpt-4'
-      version: '0613'
-    }
-    raiPolicyName: 'Microsoft.Default'
-  }
-}
-
-// Phi Model Deployment
-resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
-  parent: cognitiveServices
-  name: 'phi-3'
+  name: 'Phi-4'
   sku: {
     name: 'Standard'
     capacity: 1
@@ -64,14 +43,11 @@ resource phiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10
   properties: {
     model: {
       format: 'OpenAI'
-      name: 'phi-3'
-      version: 'latest'
+      name: 'Phi-4'
+      version: '2024-12-12'
     }
     raiPolicyName: 'Microsoft.Default'
   }
-  dependsOn: [
-    gpt4Deployment
-  ]
 }
 
 // Cognitive Services User Role Definition ID
