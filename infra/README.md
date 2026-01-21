@@ -10,7 +10,7 @@ The infrastructure provisions the following Azure resources in the `westus3` reg
 - **User-Assigned Managed Identity**: Secure authentication without passwords
 - **Azure Container Registry**: Stores Docker images for the application
 - **App Service Plan**: Linux B2 (Basic) tier for hosting
-- **App Service**: Runs the containerized .NET 6.0 web application
+- **App Service**: Runs the containerized .NET 8.0 web application
 - **Application Insights**: Application performance monitoring
 - **Log Analytics Workspace**: Centralized logging and analytics
 - **Microsoft Foundry (AI Services)**: GPT-4 and Phi-3 model deployments
